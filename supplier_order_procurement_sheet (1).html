@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mety x Kunfubuy</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .font-mono-num { font-family: 'JetBrains Mono', monospace; font-feature-settings: 'tnum' 1; }
+    .custom-scroll::-webkit-scrollbar { height: 4px; width: 4px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-white text-slate-900 min-h-screen antialiased selection:bg-slate-200">
+
+  <!-- Minimal Header -->
+  <header class="border-b border-slate-100 sticky top-0 z-30 bg-white/95 backdrop-blur-sm">
+    <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+      
+      <!-- Brand & Clean Role Switcher -->
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-sm tracking-tight text-slate-900">Mety x Kunfubuy</span>
+          <span id="sync-badge" class="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+            Connecting
+          </span>
+        </div>
+        
+        <div class="flex items-center bg-slate-100 p-0.5 rounded-lg text-xs font-medium">
+          <button 
+            id="role-btn-admin" 
+            onclick="switchRole('admin')" 
+            class="px-2.5 py-1 rounded-md transition font-semibold bg-white text-slate-900 shadow-xs">
+            Mety
+          </button>
+          <button 
+            id="role-btn-supplier" 
+            onclick="switchRole('supplier')" 
+            class="px-2.5 py-1 rounded-md transition text-slate-500 hover:text-slate-900">
+            Kunfubuy
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="flex items-center gap-2">
+        <button 
+          onclick="copySupplierLink()" 
+          title="Copy link for Kunfubuy"
+          class="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition font-medium">
+          <i data-lucide="share-2" class="w-3.5 h-3.5 text-slate-400"></i>
+          <span>Share link</span>
+        </button>
+
+        <button 
+          id="btn-new-order" 
+          onclick="openNewOrderModal()" 
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition shadow-xs">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          <span>New Order</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <div id="orders-container" class="space-y-8">
+      <!-- Order blocks will be rendered here -->
+    </div>
+  </main>
+
+  <!-- Modal: Add / Edit Order -->
+  <div id="order-modal" class="fixed inset-0 z-50 bg-slate-900/40 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-sm shadow-xl p-5 border border-slate-100">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <h3 id="order-modal-title" class="font-bold text-sm text-slate-900">New Order</h3>
+        <button onclick="closeOrderModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="order-form" onsubmit="handleSaveOrder(event)" class="space-y-3.5 text-xs">
+        <input type="hidden" id="order-id" />
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Order Name *</label>
+          <input 
+            type="text" 
+            id="order-title-input" 
+            required 
+            placeholder="e.g. Batch #01" 
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-slate-900"
+          />
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Visibility</label>
+          <select id="order-status-input" class="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-slate-900 bg-white">
+            <option value="sent">Visible to Kunfubuy</option>
+            <option value="draft">Draft (Only Mety sees this)</option>
+          </select>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeOrderModal()" class="px-3 py-1.5 rounded-lg text-slate-500 hover:bg-slate-50 font-medium">Cancel</button>
+          <button type="submit" class="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add / Edit Item -->
+  <div id="item-modal" class="fixed inset-0 z-50 bg-slate-900/40 hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl w-full max-w-md shadow-xl p-5 border border-slate-100 my-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <h3 id="item-modal-title" class="font-bold text-sm text-slate-900">Add Item</h3>
+        <button onclick="closeItemModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="item-form" onsubmit="handleSaveItem(event)" class="space-y-3.5 text-xs">
+        <input type="hidden" id="item-order-id" />
+        <input type="hidden" id="item-id" />
+
+        <!-- Reference Photo Box (Paste / File) -->
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Photo</label>
+          <div 
+            id="item-drop-zone" 
+            tabindex="0"
+            class="border border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-3 text-center cursor-pointer transition flex flex-col items-center justify-center gap-1 focus:outline-none">
+            <div id="drop-zone-placeholder" class="text-slate-400 py-2">
+              <span class="font-medium text-slate-600">Paste photo (<kbd class="px-1.5 py-0.5 bg-slate-100 rounded text-[10px]">Ctrl+V</kbd>)</span> or click to upload
+            </div>
+            <img id="item-preview-img" src="" alt="Preview" class="hidden h-24 w-auto rounded-lg object-contain border border-slate-100" />
+            <input type="file" id="item-file-input" accept="image/*" class="hidden" onchange="handleItemFileSelected(event)" />
+          </div>
+          <button type="button" id="btn-remove-item-photo" onclick="removeItemPhoto()" class="hidden text-[11px] text-rose-500 hover:underline mt-1">Remove photo</button>
+        </div>
+
+        <!-- Product Link -->
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Link *</label>
+          <input 
+            type="url" 
+            id="item-link" 
+            required 
+            placeholder="https://..." 
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-slate-900 font-mono-num text-[11px]"
+          />
+        </div>
+
+        <!-- Style & Size -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Style *</label>
+            <input 
+              type="text" 
+              id="item-style" 
+              required 
+              placeholder="e.g. Blue, Red" 
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-slate-900"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Size *</label>
+            <input 
+              type="text" 
+              id="item-size" 
+              required 
+              placeholder="e.g. 43, XL" 
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-slate-900"
+            />
+          </div>
+        </div>
+
+        <!-- Photo Request -->
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Photo Request <span class="text-slate-400 font-normal">(what to photograph)</span></label>
+          <input 
+            type="text" 
+            id="item-photo-request" 
+            placeholder="e.g. Insole length with ruler, size tag" 
+            class="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-slate-900"
+          />
+        </div>
+
+        <!-- Qty & CNY Price -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Quantity *</label>
+            <input 
+              type="number" 
+              id="item-qty" 
+              min="1" 
+              value="1" 
+              required 
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 font-mono-num focus:outline-none focus:border-slate-900"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Price CNY (¥) *</label>
+            <input 
+              type="number" 
+              id="item-price-cny" 
+              step="0.01" 
+              min="0" 
+              required 
+              placeholder="150" 
+              oninput="updateModalEurPreview(this.value)"
+              class="w-full px-3 py-2 rounded-lg border border-slate-200 font-mono-num focus:outline-none focus:border-slate-900"
+            />
+            <div class="mt-1 text-right text-[11px] text-slate-400 font-mono-num" id="modal-eur-preview">≈ € 0.00</div>
+          </div>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeItemModal()" class="px-3 py-1.5 rounded-lg text-slate-500 hover:bg-slate-50 font-medium">Cancel</button>
+          <button type="submit" class="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: QC Photos -->
+  <div id="qc-modal" class="fixed inset-0 z-50 bg-slate-900/40 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md shadow-xl p-5 border border-slate-100">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+        <h3 class="font-bold text-sm text-slate-900">QC Photos</h3>
+        <button onclick="closeQcModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Photo instructions if requested -->
+      <div id="qc-req-box" class="hidden mb-3 p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+        <span class="text-slate-500 block text-[10px] font-semibold uppercase">Requested by Mety:</span>
+        <span id="qc-req-text" class="text-slate-900 font-medium"></span>
+      </div>
+
+      <!-- Paste/Drop Zone for QC -->
+      <div 
+        id="qc-drop-zone" 
+        tabindex="0"
+        class="border border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-4 text-center cursor-pointer transition flex flex-col items-center justify-center gap-1 focus:outline-none mb-3">
+        <span class="font-medium text-slate-700 text-xs">Paste QC photo (<kbd class="px-1.5 py-0.5 bg-slate-100 rounded text-[10px]">Ctrl+V</kbd>)</span>
+        <span class="text-[11px] text-slate-400">or click to upload</span>
+        <input type="file" id="qc-file-input" accept="image/*" class="hidden" onchange="handleQcFileSelected(event)" />
+      </div>
+
+      <!-- Uploaded QC list -->
+      <div id="qc-gallery" class="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto custom-scroll mb-4">
+        <!-- Thumbnails -->
+      </div>
+
+      <div class="flex justify-end">
+        <button onclick="closeQcModal()" class="px-4 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800 transition">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox Modal -->
+  <div id="lightbox" onclick="closeLightbox()" class="fixed inset-0 z-50 bg-black/80 hidden items-center justify-center p-4">
+    <div class="relative max-w-4xl max-h-[90vh]" onclick="event.stopPropagation()">
+      <button onclick="closeLightbox()" class="absolute -top-8 right-0 text-white/70 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      <img id="lightbox-img" src="" alt="Enlarged" class="max-w-full max-h-[85vh] rounded-lg object-contain" />
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-3.5 py-2 rounded-lg text-xs font-medium opacity-0 pointer-events-none transition-all duration-200 shadow-lg"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    window.currentRole = 'admin';
+    window.exchangeRate = 7.85;
+    window.currentUploadedImageData = '';
+    window.activeQcOrder = null;
+    window.activeQcItem = null;
+    window.orders = [];
+
+    // App & Database credentials
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'mety-kunfubuy';
+    let db = null;
+    let auth = null;
+    let currentUser = null;
+    let ordersCollectionRef = null;
+
+    async function initCloudSync() {
+      const syncBadge = document.getElementById('sync-badge');
+      try {
+        if (typeof __firebase_config === 'undefined') {
+          console.warn("No cloud config found, using local storage fallback");
+          loadLocalFallback();
+          if (syncBadge) {
+            syncBadge.className = 'inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200';
+            syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Local';
+          }
+          render();
+          return;
+        }
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          const cred = await signInWithCustomToken(auth, __initial_auth_token);
+          currentUser = cred.user;
+        } else {
+          const cred = await signInAnonymously(auth);
+          currentUser = cred.user;
+        }
+
+        if (!currentUser) return;
+
+        ordersCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'orders');
+
+        if (syncBadge) {
+          syncBadge.className = 'inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200';
+          syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Live';
+        }
+
+        onSnapshot(ordersCollectionRef, (snapshot) => {
+          const loaded = [];
+          snapshot.forEach(docSnap => {
+            loaded.push(docSnap.data());
+          });
+
+          loaded.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          window.orders = loaded;
+          try {
+            localStorage.setItem('mety_procurement_clean_v1', JSON.stringify(window.orders));
+          } catch (e) {}
+          render();
+
+          if (window.activeQcOrder && window.activeQcItem) {
+            const currentOrd = window.orders.find(o => o.id === window.activeQcOrder.id);
+            if (currentOrd) {
+              const currentIt = (currentOrd.items || []).find(i => i.id === window.activeQcItem.id);
+              if (currentIt) {
+                window.activeQcItem = currentIt;
+                renderQcThumbnails();
+              }
+            }
+          }
+        }, (err) => {
+          console.error("Firestore sync error:", err);
+          if (syncBadge) {
+            syncBadge.className = 'inline-flex items-center gap-1 text-[10px] font-medium text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200';
+            syncBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Sync Error';
+          }
+        });
+
+      } catch (err) {
+        console.error("Database initialization failed:", err);
+        loadLocalFallback();
+        render();
+      }
+    }
+
+    function loadLocalFallback() {
+      try {
+        const raw = localStorage.getItem('mety_procurement_clean_v1');
+        if (raw) {
+          window.orders = JSON.parse(raw);
+          return;
+        }
+      } catch (e) {}
+      window.orders = [];
+    }
+
+    async function syncOrderToCloud(ord) {
+      const existingIdx = window.orders.findIndex(o => o.id === ord.id);
+      if (existingIdx >= 0) {
+        window.orders[existingIdx] = ord;
+      } else {
+        window.orders.unshift(ord);
+      }
+      try {
+        localStorage.setItem('mety_procurement_clean_v1', JSON.stringify(window.orders));
+      } catch (e) {}
+      render();
+
+      if (!currentUser || !db || !ordersCollectionRef) {
+        return;
+      }
+      try {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'orders', ord.id);
+        await setDoc(docRef, ord, { merge: true });
+      } catch (e) {
+        console.error("Error saving order to cloud:", e);
+      }
+    }
+
+    async function removeOrderFromCloud(orderId) {
+      window.orders = window.orders.filter(o => o.id !== orderId);
+      try {
+        localStorage.setItem('mety_procurement_clean_v1', JSON.stringify(window.orders));
+      } catch (e) {}
+      render();
+
+      if (!currentUser || !db || !ordersCollectionRef) {
+        return;
+      }
+      try {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'orders', orderId);
+        await deleteDoc(docRef);
+      } catch (e) {
+        console.error("Error deleting order from cloud:", e);
+      }
+    }
+
+    // Role switcher
+    window.switchRole = function(role) {
+      window.currentRole = role;
+      const isAdmin = role === 'admin';
+      
+      const btnAdmin = document.getElementById('role-btn-admin');
+      const btnSupplier = document.getElementById('role-btn-supplier');
+      const btnNewOrder = document.getElementById('btn-new-order');
+
+      if (btnAdmin && btnSupplier && btnNewOrder) {
+        if (isAdmin) {
+          btnAdmin.className = 'px-2.5 py-1 rounded-md transition font-semibold bg-white text-slate-900 shadow-xs';
+          btnSupplier.className = 'px-2.5 py-1 rounded-md transition text-slate-500 hover:text-slate-900';
+          btnNewOrder.classList.remove('hidden');
+        } else {
+          btnSupplier.className = 'px-2.5 py-1 rounded-md transition font-semibold bg-white text-slate-900 shadow-xs';
+          btnAdmin.className = 'px-2.5 py-1 rounded-md transition text-slate-500 hover:text-slate-900';
+          btnNewOrder.classList.add('hidden');
+        }
+      }
+
+      render();
+    };
+
+    window.copySupplierLink = function() {
+      const url = new URL(window.location.href);
+      url.searchParams.set('role', 'supplier');
+      copyToClipboard(url.toString());
+      showToast('Supplier link copied');
+    };
+
+    function cnyToEur(cny) {
+      return (Number(cny) || 0) / window.exchangeRate;
+    }
+
+    window.updateModalEurPreview = function(cnyVal) {
+      const el = document.getElementById('modal-eur-preview');
+      if (el) {
+        const val = Number(cnyVal) || 0;
+        el.textContent = `≈ € ${(val / window.exchangeRate).toFixed(2)}`;
+      }
+    };
+
+    function render() {
+      const container = document.getElementById('orders-container');
+      if (!container) return;
+      const isAdmin = window.currentRole === 'admin';
+
+      const visibleOrders = window.orders.filter(o => isAdmin || o.status === 'sent');
+
+      if (visibleOrders.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-16 text-slate-400 text-xs">
+            No orders found. ${isAdmin ? 'Click "+ New Order" to start.' : ''}
+          </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
+        return;
+      }
+
+      let html = '';
+
+      visibleOrders.forEach(ord => {
+        const items = ord.items || [];
+        const isDraft = ord.status === 'draft';
+
+        html += `
+          <div class="border border-slate-200/80 rounded-xl overflow-hidden bg-white shadow-2xs">
+            <!-- Header bar of order -->
+            <div class="px-4 py-3 bg-slate-50/70 border-b border-slate-200/80 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-xs text-slate-900">${escapeHtml(ord.title)}</span>
+                ${isDraft ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 font-semibold">Draft</span>` : ''}
+              </div>
+
+              ${isAdmin ? `
+                <div class="flex items-center gap-2">
+                  ${isDraft ? `
+                    <button onclick="publishOrder('${ord.id}')" class="text-xs text-slate-600 hover:text-slate-900 font-medium">Publish</button>
+                  ` : ''}
+                  <button onclick="openAddItemModal('${ord.id}')" class="flex items-center gap-1 text-xs font-semibold text-slate-900 hover:text-black">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Item
+                  </button>
+                  <button onclick="deleteOrder('${ord.id}')" class="text-slate-400 hover:text-rose-500 p-1">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+
+            <!-- Clean Table -->
+            <div class="overflow-x-auto custom-scroll">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-100 text-slate-400 font-medium text-[11px]">
+                    <th class="px-3 py-2 w-28">Status</th>
+                    <th class="px-3 py-2 w-14 text-center">Photo</th>
+                    <th class="px-3 py-2">Link</th>
+                    <th class="px-3 py-2">Style</th>
+                    <th class="px-3 py-2">Size</th>
+                    <th class="px-3 py-2 text-center w-12">Qty</th>
+                    <th class="px-3 py-2 text-right">Price</th>
+                    <th class="px-3 py-2">QC Photos</th>
+                    ${isAdmin ? `<th class="px-3 py-2 text-center w-16"></th>` : ''}
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+        `;
+
+        if (items.length === 0) {
+          html += `
+            <tr>
+              <td colspan="${isAdmin ? 9 : 8}" class="py-6 text-center text-slate-400 text-xs italic">
+                No items in this order.
+              </td>
+            </tr>
+          `;
+        } else {
+          items.forEach(it => {
+            const isDone = it.status === 'purchased' || it.status === 'qc_ready';
+            const isOos = it.status === 'out_of_stock';
+            
+            let rowBg = 'hover:bg-slate-50/50';
+            if (isDone) rowBg = 'bg-emerald-50/30 text-emerald-950';
+            if (isOos) rowBg = 'bg-rose-50/30 text-rose-950';
+
+            const photoUrl = it.imageUrl || 'https://placehold.co/60x60/f8fafc/cbd5e1?text=No+Pic';
+            const eurUnit = cnyToEur(it.priceCny);
+
+            html += `
+              <tr class="${rowBg} transition-colors">
+                <!-- Status dropdown -->
+                <td class="px-3 py-2.5">
+                  <select 
+                    onchange="updateItemStatus('${ord.id}', '${it.id}', this.value)"
+                    class="text-xs py-1 px-2 rounded border border-slate-200 bg-white font-medium focus:outline-none cursor-pointer">
+                    <option value="pending" ${it.status === 'pending' ? 'selected' : ''}>Pending</option>
+                    <option value="purchased" ${it.status === 'purchased' ? 'selected' : ''}>Purchased</option>
+                    <option value="qc_ready" ${it.status === 'qc_ready' ? 'selected' : ''}>QC Ready</option>
+                    <option value="out_of_stock" ${it.status === 'out_of_stock' ? 'selected' : ''}>Out of Stock</option>
+                  </select>
+                </td>
+
+                <!-- Photo (enlargeable) -->
+                <td class="px-3 py-2.5 text-center">
+                  <img 
+                    src="${escapeHtml(photoUrl)}" 
+                    alt="Product" 
+                    onclick="openLightbox('${escapeHtml(photoUrl)}')"
+                    class="w-8 h-8 rounded object-cover mx-auto cursor-pointer border border-slate-200 hover:opacity-80 transition"
+                  />
+                </td>
+
+                <!-- Direct Open & Copy -->
+                <td class="px-3 py-2.5">
+                  <div class="flex items-center gap-2">
+                    <button 
+                      onclick="openUrl('${escapeHtml(it.link)}')" 
+                      class="text-slate-900 hover:underline font-semibold flex items-center gap-1">
+                      Open <i data-lucide="external-link" class="w-3 h-3 text-slate-400"></i>
+                    </button>
+                    <span class="text-slate-300">|</span>
+                    <button 
+                      onclick="copyText('${escapeHtml(it.link)}')" 
+                      class="text-slate-500 hover:text-slate-900">
+                      Copy
+                    </button>
+                  </div>
+                </td>
+
+                <!-- Style -->
+                <td class="px-3 py-2.5 font-medium text-slate-900">${escapeHtml(it.style || '-')}</td>
+
+                <!-- Size -->
+                <td class="px-3 py-2.5 font-mono-num text-slate-600">${escapeHtml(it.size || '-')}</td>
+
+                <!-- Quantity -->
+                <td class="px-3 py-2.5 text-center font-mono-num">${it.quantity || 1}</td>
+
+                <!-- Price: CNY + subtle gray EUR -->
+                <td class="px-3 py-2.5 text-right font-mono-num whitespace-nowrap">
+                  <span class="font-semibold text-slate-900">¥${Number(it.priceCny || 0).toFixed(2)}</span>
+                  <span class="text-slate-400 text-[11px] ml-1.5">(€${eurUnit.toFixed(2)})</span>
+                </td>
+
+                <!-- QC Photos & Request -->
+                <td class="px-3 py-2.5">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    ${(it.qcPhotos || []).map(p => `
+                      <img 
+                        src="${escapeHtml(p)}" 
+                        alt="QC" 
+                        onclick="openLightbox('${escapeHtml(p)}')"
+                        class="w-6 h-6 rounded object-cover cursor-pointer border border-slate-200 hover:opacity-80" 
+                      />
+                    `).join('')}
+
+                    <button 
+                      onclick="openQcModal('${ord.id}', '${it.id}')" 
+                      class="text-[11px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">
+                      + QC ${(it.qcPhotos && it.qcPhotos.length) ? `(${it.qcPhotos.length})` : ''}
+                    </button>
+                  </div>
+                  ${it.photoRequest ? `
+                    <div class="text-[10px] text-slate-500 mt-0.5">
+                      <span class="font-semibold text-slate-700">Req:</span> ${escapeHtml(it.photoRequest)}
+                    </div>
+                  ` : ''}
+                </td>
+
+                <!-- Actions -->
+                ${isAdmin ? `
+                  <td class="px-3 py-2.5 text-center">
+                    <div class="flex items-center justify-center gap-1">
+                      <button onclick="openEditItemModal('${ord.id}', '${it.id}')" class="p-1 text-slate-400 hover:text-slate-900">
+                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                      </button>
+                      <button onclick="deleteItem('${ord.id}', '${it.id}')" class="p-1 text-slate-400 hover:text-rose-600">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </div>
+                  </td>
+                ` : ''}
+              </tr>
+            `;
+          });
+        }
+
+        html += `
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    window.openNewOrderModal = function() {
+      document.getElementById('order-id').value = '';
+      document.getElementById('order-title-input').value = `Batch #${window.orders.length + 1}`;
+      document.getElementById('order-status-input').value = 'sent';
+      const m = document.getElementById('order-modal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    };
+
+    window.closeOrderModal = function() {
+      const m = document.getElementById('order-modal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    };
+
+    window.handleSaveOrder = async function(e) {
+      e.preventDefault();
+      const orderId = document.getElementById('order-id').value;
+      const title = document.getElementById('order-title-input').value.trim();
+      const status = document.getElementById('order-status-input').value;
+
+      if (orderId) {
+        const ord = window.orders.find(o => o.id === orderId);
+        if (ord) {
+          ord.title = title;
+          ord.status = status;
+          closeOrderModal();
+          await syncOrderToCloud(ord);
+          showToast('Order updated');
+          return;
+        }
+      }
+
+      const newOrd = {
+        id: 'ord_' + Date.now(),
+        title,
+        status,
+        createdAt: Date.now(),
+        items: []
+      };
+      
+      closeOrderModal();
+      await syncOrderToCloud(newOrd);
+      showToast('Order created');
+    };
+
+    window.publishOrder = async function(orderId) {
+      const ord = window.orders.find(o => o.id === orderId);
+      if (ord) {
+        ord.status = 'sent';
+        await syncOrderToCloud(ord);
+        showToast('Order is now visible to Kunfubuy');
+      }
+    };
+
+    window.deleteOrder = async function(orderId) {
+      await removeOrderFromCloud(orderId);
+      showToast('Order deleted');
+    };
+
+    // Item modal handlers
+    window.openAddItemModal = function(orderId) {
+      document.getElementById('item-order-id').value = orderId;
+      document.getElementById('item-id').value = '';
+      document.getElementById('item-modal-title').textContent = 'Add Item';
+      document.getElementById('item-link').value = '';
+      document.getElementById('item-style').value = '';
+      document.getElementById('item-size').value = '';
+      document.getElementById('item-photo-request').value = '';
+      document.getElementById('item-qty').value = '1';
+      document.getElementById('item-price-cny').value = '';
+      document.getElementById('modal-eur-preview').textContent = '≈ € 0.00';
+      resetPhotoDrop();
+
+      const m = document.getElementById('item-modal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    };
+
+    window.openEditItemModal = function(orderId, itemId) {
+      const ord = window.orders.find(o => o.id === orderId);
+      if (!ord) return;
+      const it = (ord.items || []).find(i => i.id === itemId);
+      if (!it) return;
+
+      document.getElementById('item-order-id').value = orderId;
+      document.getElementById('item-id').value = itemId;
+      document.getElementById('item-modal-title').textContent = 'Edit Item';
+      document.getElementById('item-link').value = it.link || '';
+      document.getElementById('item-style').value = it.style || '';
+      document.getElementById('item-size').value = it.size || '';
+      document.getElementById('item-photo-request').value = it.photoRequest || '';
+      document.getElementById('item-qty').value = it.quantity || 1;
+      document.getElementById('item-price-cny').value = it.priceCny || '';
+      window.updateModalEurPreview(it.priceCny || 0);
+
+      window.currentUploadedImageData = it.imageUrl || '';
+      if (it.imageUrl) {
+        const preview = document.getElementById('item-preview-img');
+        preview.src = it.imageUrl;
+        preview.classList.remove('hidden');
+        document.getElementById('drop-zone-placeholder').classList.add('hidden');
+        document.getElementById('btn-remove-item-photo').classList.remove('hidden');
+      } else {
+        resetPhotoDrop();
+      }
+
+      const m = document.getElementById('item-modal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    };
+
+    window.closeItemModal = function() {
+      const m = document.getElementById('item-modal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    };
+
+    window.handleSaveItem = async function(e) {
+      e.preventDefault();
+      const orderId = document.getElementById('item-order-id').value;
+      const itemId = document.getElementById('item-id').value;
+      const link = document.getElementById('item-link').value.trim();
+      const style = document.getElementById('item-style').value.trim();
+      const size = document.getElementById('item-size').value.trim();
+      const photoRequest = document.getElementById('item-photo-request').value.trim();
+      const quantity = parseInt(document.getElementById('item-qty').value, 10) || 1;
+      const priceCny = parseFloat(document.getElementById('item-price-cny').value) || 0;
+
+      const ord = window.orders.find(o => o.id === orderId);
+      if (!ord) return;
+
+      if (!ord.items) ord.items = [];
+
+      if (itemId) {
+        const it = ord.items.find(i => i.id === itemId);
+        if (it) {
+          it.link = link;
+          it.style = style;
+          it.size = size;
+          it.photoRequest = photoRequest;
+          it.quantity = quantity;
+          it.priceCny = priceCny;
+          if (window.currentUploadedImageData) {
+            it.imageUrl = window.currentUploadedImageData;
+          }
+        }
+      } else {
+        ord.items.push({
+          id: 'it_' + Date.now(),
+          link,
+          style,
+          size,
+          photoRequest,
+          quantity,
+          priceCny,
+          imageUrl: window.currentUploadedImageData || '',
+          status: 'pending',
+          qcPhotos: []
+        });
+      }
+
+      closeItemModal();
+      await syncOrderToCloud(ord);
+      showToast('Item saved');
+    };
+
+    window.deleteItem = async function(orderId, itemId) {
+      const ord = window.orders.find(o => o.id === orderId);
+      if (ord) {
+        ord.items = (ord.items || []).filter(i => i.id !== itemId);
+        await syncOrderToCloud(ord);
+        showToast('Item removed');
+      }
+    };
+
+    window.updateItemStatus = async function(orderId, itemId, newStatus) {
+      const ord = window.orders.find(o => o.id === orderId);
+      if (!ord) return;
+      const it = (ord.items || []).find(i => i.id === itemId);
+      if (it) {
+        it.status = newStatus;
+        await syncOrderToCloud(ord);
+        showToast(`Status updated to ${newStatus}`);
+      }
+    };
+
+    window.openQcModal = function(orderId, itemId) {
+      const ord = window.orders.find(o => o.id === orderId);
+      if (!ord) return;
+      const it = (ord.items || []).find(i => i.id === itemId);
+      if (!it) return;
+
+      window.activeQcOrder = ord;
+      window.activeQcItem = it;
+
+      const reqBox = document.getElementById('qc-req-box');
+      const reqText = document.getElementById('qc-req-text');
+      if (it.photoRequest && it.photoRequest.trim()) {
+        reqText.textContent = it.photoRequest;
+        reqBox.classList.remove('hidden');
+      } else {
+        reqBox.classList.add('hidden');
+      }
+
+      renderQcThumbnails();
+
+      const m = document.getElementById('qc-modal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    };
+
+    window.closeQcModal = function() {
+      const m = document.getElementById('qc-modal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+      window.activeQcOrder = null;
+      window.activeQcItem = null;
+    };
+
+    function renderQcThumbnails() {
+      const it = window.activeQcItem;
+      const gallery = document.getElementById('qc-gallery');
+      if (!it || !gallery) return;
+
+      const photos = it.qcPhotos || [];
+      if (photos.length === 0) {
+        gallery.innerHTML = '<div class="col-span-full py-3 text-center text-slate-400 text-xs italic">No QC photos yet.</div>';
+        return;
+      }
+
+      gallery.innerHTML = photos.map((src, idx) => `
+        <div class="relative group rounded border border-slate-200 overflow-hidden aspect-square">
+          <img src="${escapeHtml(src)}" alt="QC" class="w-full h-full object-cover" onclick="openLightbox('${escapeHtml(src)}')" />
+          <button onclick="removeQcPhoto(${idx})" class="absolute top-1 right-1 p-0.5 rounded bg-black/60 text-white hover:bg-rose-600 transition opacity-0 group-hover:opacity-100">
+            <i data-lucide="trash" class="w-3 h-3"></i>
+          </button>
+        </div>
+      `).join('');
+
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    window.removeQcPhoto = async function(idx) {
+      if (!window.activeQcItem || !window.activeQcOrder) return;
+      window.activeQcItem.qcPhotos.splice(idx, 1);
+      await syncOrderToCloud(window.activeQcOrder);
+      renderQcThumbnails();
+      render();
+    };
+
+    async function addQcPhoto(base64) {
+      if (!window.activeQcItem || !window.activeQcOrder) return;
+      if (!window.activeQcItem.qcPhotos) window.activeQcItem.qcPhotos = [];
+      window.activeQcItem.qcPhotos.push(base64);
+      window.activeQcItem.status = 'qc_ready';
+      await syncOrderToCloud(window.activeQcOrder);
+      renderQcThumbnails();
+      render();
+      showToast('QC Photo added');
+    }
+
+    // Lightbox
+    window.openLightbox = function(src) {
+      const img = document.getElementById('lightbox-img');
+      if (img) img.src = src;
+      const lb = document.getElementById('lightbox');
+      if (lb) {
+        lb.classList.remove('hidden');
+        lb.classList.add('flex');
+      }
+    };
+
+    window.closeLightbox = function() {
+      const lb = document.getElementById('lightbox');
+      if (lb) {
+        lb.classList.add('hidden');
+        lb.classList.remove('flex');
+      }
+    };
+
+    // Photo Paste & Drop Setup
+    function setupPhotoHandlers() {
+      const itemDrop = document.getElementById('item-drop-zone');
+      const itemFile = document.getElementById('item-file-input');
+      if (itemDrop && itemFile) {
+        itemDrop.addEventListener('click', () => itemFile.click());
+      }
+
+      const qcDrop = document.getElementById('qc-drop-zone');
+      const qcFile = document.getElementById('qc-file-input');
+      if (qcDrop && qcFile) {
+        qcDrop.addEventListener('click', () => qcFile.click());
+      }
+
+      // Global paste listener
+      window.addEventListener('paste', (e) => {
+        const itemModal = document.getElementById('item-modal');
+        const qcModal = document.getElementById('qc-modal');
+        const itemModalOpen = itemModal && !itemModal.classList.contains('hidden');
+        const qcModalOpen = qcModal && !qcModal.classList.contains('hidden');
+
+        if (!itemModalOpen && !qcModalOpen) return;
+
+        const items = e.clipboardData && e.clipboardData.items;
+        if (!items) return;
+
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf('image') !== -1) {
+            const file = items[i].getAsFile();
+            if (!file) continue;
+            compress(file, (base64) => {
+              if (itemModalOpen) {
+                window.currentUploadedImageData = base64;
+                const preview = document.getElementById('item-preview-img');
+                const placeholder = document.getElementById('drop-zone-placeholder');
+                const removeBtn = document.getElementById('btn-remove-item-photo');
+                if (preview) {
+                  preview.src = base64;
+                  preview.classList.remove('hidden');
+                }
+                if (placeholder) placeholder.classList.add('hidden');
+                if (removeBtn) removeBtn.classList.remove('hidden');
+                showToast('Photo pasted');
+              } else if (qcModalOpen) {
+                addQcPhoto(base64);
+              }
+            });
+            e.preventDefault();
+            break;
+          }
+        }
+      });
+    }
+
+    window.handleItemFileSelected = function(e) {
+      if (e.target.files && e.target.files[0]) {
+        compress(e.target.files[0], (base64) => {
+          window.currentUploadedImageData = base64;
+          const preview = document.getElementById('item-preview-img');
+          const placeholder = document.getElementById('drop-zone-placeholder');
+          const removeBtn = document.getElementById('btn-remove-item-photo');
+          if (preview) {
+            preview.src = base64;
+            preview.classList.remove('hidden');
+          }
+          if (placeholder) placeholder.classList.add('hidden');
+          if (removeBtn) removeBtn.classList.remove('hidden');
+        });
+      }
+    };
+
+    window.handleQcFileSelected = function(e) {
+      if (e.target.files && e.target.files[0]) {
+        compress(e.target.files[0], (base64) => {
+          addQcPhoto(base64);
+        });
+      }
+    };
+
+    window.removeItemPhoto = function() {
+      resetPhotoDrop();
+    };
+
+    function resetPhotoDrop() {
+      window.currentUploadedImageData = '';
+      const preview = document.getElementById('item-preview-img');
+      const placeholder = document.getElementById('drop-zone-placeholder');
+      const removeBtn = document.getElementById('btn-remove-item-photo');
+      const fileInput = document.getElementById('item-file-input');
+
+      if (preview) {
+        preview.src = '';
+        preview.classList.add('hidden');
+      }
+      if (placeholder) placeholder.classList.remove('hidden');
+      if (removeBtn) removeBtn.classList.add('hidden');
+      if (fileInput) fileInput.value = '';
+    }
+
+    function compress(file, cb) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const maxDim = 520;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          cb(canvas.toDataURL('image/jpeg', 0.65));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Helpers
+    window.openUrl = function(url) {
+      if (!url) return;
+      let target = url;
+      if (!target.startsWith('http://') && !target.startsWith('https://')) target = 'https://' + target;
+      window.open(target, '_blank');
+    };
+
+    window.copyText = function(text) {
+      copyToClipboard(text);
+      showToast('Copied to clipboard');
+    };
+
+    function copyToClipboard(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      if (!t) return;
+      t.textContent = msg;
+      t.classList.remove('opacity-0');
+      setTimeout(() => t.classList.add('opacity-0'), 2000);
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Init
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('role') === 'supplier') {
+        switchRole('supplier');
+      }
+      setupPhotoHandlers();
+      initCloudSync();
+    });
+  </script>
+</body>
+</html>
